@@ -323,6 +323,7 @@
   <div class="briefing-panels">
 
     <!-- 1: Title -->
+    <!-- 1: Welcome -->
     <div class="b-panel active" id="bp1">
       <div class="b-inner">
         <h2><span class="blue">Meet</span> &amp;<br><span class="blue">Move</span></h2>
@@ -332,12 +333,26 @@
           <div class="shape-square"></div>
           <div class="shape-triangle"></div>
         </div>
-        <p style="margin-top:20px;font-family:var(--mono);font-size:9px;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;">Built on LightSwitch Phase 1 research by Ripple Research</p>
+        <p style="margin-top:20px;font-family:var(--mono);font-size:9px;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;">By Ripple Research</p>
       </div>
     </div>
 
-    <!-- 2: Veritania -->
+    <!-- 2: The problem -->
     <div class="b-panel" id="bp2">
+      <div class="b-inner">
+        <h2>The problem</h2>
+        <p>Across Europe, opposition to environmental policy is growing. Not because people deny the science. Because the opposition has found a <strong>formula</strong> for turning real concerns into political resistance.</p>
+        <p>Our research analysed hundreds of thousands of social media posts across six countries to understand how that formula works.</p>
+        <p>This simulator is built on what we found.</p>
+        <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
+          <a href="https://www.rippleresearch.ai/climate-persuasion" target="_blank" style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--blue);text-decoration:none;">Our climate persuasion research &#8599;</a>
+          <a href="https://ripple-research.github.io/hot-seat/" target="_blank" style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--red);text-decoration:none;">Try the Hot Seat &#8599;</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3: Veritania -->
+    <div class="b-panel" id="bp3">
       <div class="b-inner">
         <h2>Veritania</h2>
         <p><strong>Veritania</strong> is a fictional European country. Farming, energy costs, and trust in government are the defining issues.</p>
@@ -346,8 +361,8 @@
       </div>
     </div>
 
-    <!-- 3: Your role -->
-    <div class="b-panel" id="bp3">
+    <!-- 4: Your role -->
+    <div class="b-panel" id="bp4">
       <div class="b-inner">
         <h2>Your role</h2>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
@@ -358,64 +373,74 @@
           </div>
         </div>
         <p>You are the <strong>communications director</strong> of Veritania Greens, a national environmental organisation.</p>
-        <p>Your team has <strong>6 posts</strong> to build public support for the Living Landscapes Act before the vote.</p>
+        <p>Your job is to build public support for the Act before the vote.</p>
       </div>
     </div>
 
-    <!-- 4: Marc (blue bg) -->
-    <div class="b-panel scene-blue" id="bp4">
+    <!-- 5: Bridge to people -->
+    <div class="b-panel" id="bp5">
+      <div class="b-inner">
+        <h2>Know your audience</h2>
+        <p>Before you post anything, you need to understand who you are trying to reach.</p>
+        <p>Meet three citizens of Veritania. Each represents a larger group. Each has a real concern. <strong>The opposition is already offering them an explanation.</strong></p>
+      </div>
+    </div>
+
+    <!-- 6: Marc -->
+    <div class="b-panel scene-blue" id="bp6">
       <div class="b-inner" style="align-items:center;">
         <div class="scene-img-wrap">
-          <img src="uploads/Marc.png" alt="Marc sitting in a café">
+          <img src="uploads/Marc.png" alt="Marc">
           <div class="thought-bubble" id="marc-thought"></div>
         </div>
         <div class="scene-name">Marc</div>
-        <div class="scene-stance">Supports nature protection · Feels powerless</div>
+        <div class="scene-stance">Supports nature protection &#183; Feels powerless</div>
       </div>
     </div>
 
-    <!-- 5: Marie (yellow bg) -->
-    <div class="b-panel scene-yellow" id="bp5">
+    <!-- 7: Marie -->
+    <div class="b-panel scene-yellow" id="bp7">
       <div class="b-inner" style="align-items:center;">
         <div class="scene-img-wrap">
-          <img src="uploads/Marie.png" alt="Marie sitting on a bus">
+          <img src="uploads/Marie.png" alt="Marie">
           <div class="thought-bubble" id="marie-thought"></div>
         </div>
         <div class="scene-name">Marie</div>
-        <div class="scene-stance">Undecided · Could go either way</div>
+        <div class="scene-stance">Undecided &#183; Could go either way</div>
       </div>
     </div>
 
-    <!-- 6: Michel (red bg) -->
-    <div class="b-panel scene-red" id="bp6">
+    <!-- 8: Michel -->
+    <div class="b-panel scene-red" id="bp8">
       <div class="b-inner" style="align-items:center;">
         <div class="scene-img-wrap">
-          <img src="uploads/Michel.png" alt="Michel sitting on a farm">
+          <img src="uploads/Michel.png" alt="Michel">
           <div class="thought-bubble" id="michel-thought"></div>
         </div>
         <div class="scene-name">Michel</div>
-        <div class="scene-stance">Skeptical · Leaning opposition</div>
+        <div class="scene-stance">Skeptical &#183; Leaning opposition</div>
       </div>
     </div>
 
-    <!-- 7: The concerns -->
-    <div class="b-panel" id="bp7">
+    <!-- 9: The concerns -->
+    <div class="b-panel" id="bp9">
       <div class="b-inner">
         <h2>The concerns</h2>
-        <p>Across Veritania, three concerns keep coming up.</p>
+        <p>Marc, Marie, and Michel each represent thousands of Veritanians. Across the population, their concerns cluster around three themes.</p>
         <div class="b-concerns">
           <div class="b-concern-item">"Farming is getting harder"</div>
           <div class="b-concern-item">"Everything is getting more expensive"</div>
           <div class="b-concern-item">"Elites control everything"</div>
         </div>
-        <p style="margin-top:16px;">The opposition is already using these concerns to turn people against the Act.</p>
       </div>
     </div>
 
-    <!-- 8: The formula -->
-    <div class="b-panel" id="bp8">
+    <!-- 10: The counter-formula -->
+    <div class="b-panel" id="bp10">
       <div class="b-inner">
-        <h2>Every message has four parts</h2>
+        <h2>The counter-formula</h2>
+        <p>The opposition uses a formula: start with a real concern, escalate it, blame the wrong cause, build a movement.</p>
+        <p><strong>Meet &amp; Move is the counter-formula.</strong> Same structure. Different explanation. Different outcome. Built from the ground up through narrative research and applied by environmental organisations across Europe.</p>
         <div class="b-formula">
           <div class="b-step"><span class="b-step-num" style="color:var(--blue)">Meet</span><span class="b-step-text">Start with what they feel. Not what you think.</span></div>
           <div class="b-step"><span class="b-step-num" style="color:#b8960a">Amplify</span><span class="b-step-text">Make it specific. A place, a number, something real.</span></div>
@@ -423,11 +448,12 @@
           <div class="b-step"><span class="b-step-num" style="color:#2e7d32">Move</span><span class="b-step-text">Show them the law is on their side.</span></div>
         </div>
         <div class="b-warning">Some options will sound right but push people away.</div>
+        <a href="https://www.rippleresearch.ai/meet-and-move" target="_blank" style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--blue);text-decoration:none;margin-top:8px;">Learn more about Meet &amp; Move &#8599;</a>
       </div>
     </div>
 
-    <!-- 9: Go -->
-    <div class="b-panel scene-black" id="bp9">
+    <!-- 11: Go -->
+    <div class="b-panel scene-black" id="bp11">
       <div class="b-inner">
         <h2 style="color:var(--white);">Your campaign starts now</h2>
         <p>You have <strong>6 posts</strong> to shift the debate before the vote.</p>
