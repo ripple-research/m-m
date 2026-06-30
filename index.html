@@ -438,7 +438,7 @@
 
   </div>
   <div class="briefing-footer">
-    <div class="b-dots"><div class="b-dot active"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div></div>
+    <div class="b-dots"><div class="b-dot active"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div></div>
     <button class="b-btn" id="b-btn">Next</button>
   </div>
 </div>
@@ -538,7 +538,7 @@
 
 <script>
 // ===== BRIEFING =====
-let bPanel=1;const bTotal=9;
+let bPanel=1;const bTotal=11;
 const bDots=document.querySelectorAll('.b-dot');
 const bBtn=document.getElementById('b-btn');
 
@@ -573,7 +573,7 @@ function stopCharacterThoughts(){
 }
 
 // Panel → character mapping
-const panelCharacter={4:'marc',5:'marie',6:'michel'};
+const panelCharacter={6:'marc',7:'marie',8:'michel'};
 
 bBtn.addEventListener('click',()=>{
   // Leaving current panel
