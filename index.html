@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meet & Move — A Narrative Strategy Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --blue:#0051BA;--red:#E30613;--yellow:#FFCC00;
+    --black:#1a1a1a;--white:#ffffff;--grey:#f2f2f0;
+    --font:'Hanken Grotesk','Helvetica Neue',Helvetica,Arial,sans-serif;
+    --mono:'Space Mono',monospace;
+  }
+  body{background:var(--white);color:var(--black);font-family:var(--font);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+  /* ===== BRIEFING ===== */
+  .briefing{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--white);z-index:200;display:flex;flex-direction:column;transition:opacity 0.5s ease;}
+  .briefing.hidden{opacity:0;pointer-events:none;}
+  .briefing-panels{flex:1;position:relative;overflow:hidden;}
+  .b-panel{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:40px 48px;
+    opacity:0;transition:opacity 0.45s ease;
+    pointer-events:none;
+  }
+  .b-panel.active{opacity:1;pointer-events:auto;}
+
+  /* Panel content wrapper */
+  .b-inner{max-width:560px;width:100%;display:flex;flex-direction:column;gap:16px;}
+
+  .b-panel h2{font-family:var(--font);font-size:42px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;line-height:1.05;}
+  .b-panel h2 span.blue{color:var(--blue);}
+  .b-panel h2 span.red{color:var(--red);}
+  .b-panel h2 span.yellow{color:var(--yellow);}
+  .b-panel .subtitle{font-family:var(--mono);font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:0.16em;color:#999;margin-top:-4px;}
+  .b-panel p{font-size:14px;line-height:1.7;color:#555;}
+  .b-panel p strong{color:var(--black);font-weight:700;}
+
+  /* Title shapes */
+  .title-shapes{display:flex;gap:24px;margin-top:16px;align-items:center;}
+  .title-shapes .shape-circle{width:32px;height:32px;border-radius:50%;background:var(--blue);}
+  .title-shapes .shape-square{width:28px;height:28px;background:var(--yellow);}
+  .title-shapes .shape-triangle{width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:28px solid var(--red);}
+
+  /* Character scene panels */
+  .b-panel.scene-blue{background:var(--blue);color:var(--white);}
+  .b-panel.scene-blue p{color:rgba(255,255,255,0.75);}
+  .b-panel.scene-blue .subtitle{color:rgba(255,255,255,0.5);}
+
+  .b-panel.scene-yellow{background:var(--yellow);color:var(--black);}
+  .b-panel.scene-yellow p{color:rgba(0,0,0,0.6);}
+  .b-panel.scene-yellow .subtitle{color:rgba(0,0,0,0.4);}
+
+  .b-panel.scene-red{background:var(--red);color:var(--white);}
+  .b-panel.scene-red p{color:rgba(255,255,255,0.75);}
+  .b-panel.scene-red .subtitle{color:rgba(255,255,255,0.5);}
+
+  .scene-img-wrap{position:relative;width:100%;max-width:340px;margin:0 auto 8px;}
+  .scene-img-wrap img{width:100%;height:auto;display:block;}
+  .scene-img-wrap .thought-bubble{
+    position:absolute;top:8%;right:-10px;
+    background:rgba(26,26,26,0.88);color:var(--white);
+    font-size:11px;font-style:italic;line-height:1.4;
+    padding:6px 14px;max-width:180px;
+    opacity:0;transition:opacity 0.5s ease, transform 0.5s ease;
+    transform:translateY(4px);
+    pointer-events:none;
+  }
+  .scene-img-wrap .thought-bubble.visible{
+    opacity:1;transform:translateY(0);
+  }
+
+  .scene-name{font-size:36px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;text-align:center;}
+  .scene-stance{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;text-align:center;opacity:0.6;}
+
+  /* Post card entry animation */
+  @keyframes cardSlideIn{
+    from{opacity:0;transform:translateY(12px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  .post-card{animation:cardSlideIn 0.35s ease-out both;}
+
+  /* Concerns list */
+  .b-concerns{display:flex;flex-direction:column;gap:0;width:100%;}
+  .b-concern-item{padding:14px 0;font-size:22px;font-weight:800;text-transform:uppercase;letter-spacing:-0.01em;border-bottom:2px solid var(--black);opacity:0;}
+  .b-panel.active .b-concern-item{animation:slideIn 0.4s ease-out forwards;}
+  .b-panel.active .b-concern-item:nth-child(1){animation-delay:0.3s;}
+  .b-panel.active .b-concern-item:nth-child(2){animation-delay:0.7s;}
+  .b-panel.active .b-concern-item:nth-child(3){animation-delay:1.1s;}
+  @keyframes slideIn{to{opacity:1;}}
+
+  /* Formula steps */
+  .b-formula{display:flex;flex-direction:column;gap:0;width:100%;}
+  .b-step{display:flex;gap:16px;align-items:baseline;padding:12px 0;border-bottom:1px solid #e0e0e0;opacity:0;}
+  .b-panel.active .b-step{animation:slideIn 0.4s ease-out forwards;}
+  .b-panel.active .b-step:nth-child(1){animation-delay:0.2s;}
+  .b-panel.active .b-step:nth-child(2){animation-delay:0.5s;}
+  .b-panel.active .b-step:nth-child(3){animation-delay:0.8s;}
+  .b-panel.active .b-step:nth-child(4){animation-delay:1.1s;}
+  .b-step-num{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;min-width:80px;}
+  .b-step-text{font-size:14px;color:#555;line-height:1.5;}
+  .b-warning{font-size:11px;color:var(--red);font-weight:700;margin-top:12px;text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);opacity:0;}
+  .b-panel.active .b-warning{animation:slideIn 0.4s ease-out 1.5s forwards;}
+
+  /* Go screen */
+  .b-panel.scene-black{background:var(--black);color:var(--white);}
+  .b-panel.scene-black p{color:rgba(255,255,255,0.65);}
+  .b-panel.scene-black p strong{color:var(--white);}
+  .b-panel.scene-black .go-warning{color:var(--red);font-weight:700;font-size:12px;margin-top:4px;font-family:var(--mono);letter-spacing:0.02em;}
+
+  .briefing-footer{padding:14px 48px;display:flex;justify-content:flex-end;align-items:center;gap:16px;border-top:2px solid var(--black);background:var(--white);flex-shrink:0;z-index:1;}
+  .b-dots{display:flex;gap:5px;}
+  .b-dot{width:8px;height:8px;border:2px solid var(--black);transition:background 0.2s;}
+  .b-dot.active{background:var(--black);}
+  .b-btn{background:var(--black);color:var(--white);border:none;padding:10px 28px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:opacity 0.2s;}
+  .b-btn:hover{opacity:0.8;}
+  .b-btn.start{background:var(--blue);color:var(--white);}
+
+  /* ===== HEADER ===== */
+  header{padding:10px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-bottom:2px solid var(--black);}
+  header h1{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.04em;}
+  header h1 span{color:var(--blue);}
+  header h1 small{font-family:var(--mono);font-size:8px;font-weight:400;letter-spacing:0.1em;color:#999;margin-left:10px;}
+  .header-controls{display:flex;align-items:center;gap:12px;}
+  .status{font-family:var(--mono);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--red);display:flex;align-items:center;gap:6px;}
+  .pulse-dot{position:relative;width:8px;height:8px;}
+  .pulse-dot .core{position:absolute;top:2px;left:2px;width:4px;height:4px;border-radius:50%;background:var(--red);}
+  .pulse-dot .ring{position:absolute;top:0;left:0;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--red);animation:ping 2s ease-out infinite;}
+  @keyframes ping{0%{transform:scale(1);opacity:0.8;}70%{transform:scale(2.2);opacity:0;}100%{transform:scale(2.2);opacity:0;}}
+
+  /* ===== SPECTRUM ===== */
+  .info-row{display:flex;flex-shrink:0;border-bottom:2px solid var(--black);}
+  .spectrum-wrap{flex:1;padding:6px 24px;}
+  .spectrum-label{font-family:var(--mono);font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#999;margin-bottom:3px;}
+  .spectrum-bar{height:8px;display:flex;overflow:hidden;border:2px solid var(--black);}
+  .seg-pro{background:var(--blue);transition:width 0.8s ease;}
+  .seg-neutral{background:var(--yellow);transition:width 0.8s ease;}
+  .seg-opp{background:var(--red);transition:width 0.8s ease;}
+  .spectrum-pcts{display:flex;justify-content:space-between;margin-top:2px;}
+  .spectrum-pcts .group{display:flex;align-items:baseline;gap:3px;}
+  .spectrum-pcts .lbl{color:#999;font-weight:600;font-size:8px;text-transform:uppercase;letter-spacing:0.08em;}
+  .spectrum-pcts .val{font-family:var(--mono);font-size:10px;font-weight:700;}
+  .delta{font-size:9px;font-weight:700;font-family:var(--mono);padding:1px 5px;letter-spacing:0.02em;}
+  .delta.pos{color:var(--white);background:var(--blue);}
+  .delta.neg{color:var(--white);background:var(--red);}
+  .delta.opp-pos{color:var(--white);background:var(--red);}
+  .delta.opp-neg{color:var(--white);background:var(--blue);}
+  .delta.neutral-change{color:var(--white);background:#888;}
+
+  /* ===== FIELD ===== */
+  .field-wrap{flex:65;position:relative;overflow:hidden;background:var(--white);min-height:0;}
+  canvas#grid-bg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+  canvas#field{position:relative;display:block;width:100%;height:100%;}
+  .flash-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(to top, rgba(0,81,186,0.1) 0%, rgba(0,81,186,0.02) 60%, transparent 100%);pointer-events:none;opacity:0;transition:opacity 0.2s ease;}
+  .flash-overlay.active{opacity:1;}
+  .flash-overlay.trap-flash{background:linear-gradient(to top, rgba(227,6,19,0.12) 0%, rgba(227,6,19,0.02) 60%, transparent 100%);}
+  .particle-label{position:absolute;font-family:var(--mono);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;pointer-events:none;white-space:nowrap;}
+  .legend{position:absolute;bottom:6px;left:12px;display:flex;gap:14px;font-family:var(--mono);font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#999;}
+
+  /* ===== STATUS BAR (replaces LCD) ===== */
+  .status-bar{
+    flex-shrink:0;background:var(--black);
+    border-top:none;border-bottom:none;
+    padding:8px 24px;display:flex;align-items:center;gap:14px;
+    min-height:36px;
+  }
+  .status-bar-primary{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--white);white-space:nowrap;min-width:52px;transition:color 0.3s ease;}
+  .status-bar-primary.dim{color:rgba(255,255,255,0.3);}
+  .status-bar-primary.trap{color:var(--red);}
+  .status-bar-primary.hit{color:var(--yellow);}
+  .status-bar-secondary{font-family:var(--font);font-size:11px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.01em;line-height:1.4;transition:opacity 0.3s ease;}
+  .status-bar-secondary.dim{color:rgba(255,255,255,0.25);}
+  .status-bar-secondary.fade-out{opacity:0;}
+  .status-bar-secondary.fade-in{opacity:1;}
+
+  /* ===== PHONE PANEL ===== */
+  .phone-panel{flex:30;display:flex;flex-direction:column;min-height:0;background:var(--white);border-top:2px solid var(--black);}
+  .phone-header{padding:8px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e0e0e0;flex-shrink:0;}
+  .avatar{width:28px;height:28px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--white);flex-shrink:0;}
+  .account-name{font-size:12px;font-weight:700;}
+  .account-handle{font-family:var(--mono);font-size:9px;color:#999;}
+  .post-history{flex:1;overflow-y:auto;min-height:0;background:var(--grey);}
+  .post-history::-webkit-scrollbar{width:4px;}
+  .post-history::-webkit-scrollbar-track{background:#eee;}
+  .post-history::-webkit-scrollbar-thumb{background:#ccc;}
+  .post-card{padding:10px 24px;border-bottom:1px solid #e0e0e0;background:var(--white);animation:cardSlideIn 0.35s ease-out both;}
+  .post-card-text{font-size:12px;line-height:1.55;color:var(--black);margin-bottom:4px;}
+  .post-card-meta{display:flex;gap:16px;font-size:10px;color:#999;align-items:center;}
+  .post-card-meta .metric{display:flex;align-items:center;gap:4px;}
+  .post-card-meta .metric-icon{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;color:#bbb;flex-shrink:0;}
+  .post-card-meta .num{color:#888;font-weight:700;font-family:var(--mono);font-size:10px;min-width:28px;}
+
+  /* CTA Button */
+  .compose-cta{flex-shrink:0;border-top:2px solid var(--black);padding:0;}
+  .cta-btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:12px 24px;
+    background:var(--black);color:var(--white);
+    border:none;font-family:var(--font);font-size:11px;font-weight:700;
+    text-transform:uppercase;letter-spacing:0.1em;
+    cursor:pointer;transition:background 0.15s;
+  }
+  .cta-btn:hover{background:#333;}
+  .cta-btn:disabled{background:#ccc;color:#999;cursor:default;}
+  .cta-btn .remaining{font-family:var(--mono);font-size:10px;color:var(--yellow);font-weight:700;}
+  .cta-btn:disabled .remaining{color:#aaa;}
+
+  /* ===== DRAWER ===== */
+  .drawer-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:100;}
+  .drawer-overlay.open{display:block;}
+  .drawer{position:fixed;bottom:0;left:0;width:100%;background:var(--white);color:var(--black);z-index:101;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);max-height:85vh;display:flex;flex-direction:column;border-top:3px solid var(--black);}
+  .drawer.open{transform:translateY(0);}
+  .drawer-header{padding:12px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--black);flex-shrink:0;}
+  .drawer-title{font-family:var(--mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;}
+  .drawer-post-num{font-family:var(--mono);font-size:9px;font-weight:400;color:#999;letter-spacing:0.06em;}
+  .drawer-close{background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;}
+  .drawer-close:hover{color:var(--black);}
+
+  .concern-picker{padding:12px 24px;border-bottom:2px solid var(--black);flex-shrink:0;}
+  .concern-picker-label{font-family:var(--mono);font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin-bottom:8px;}
+  .concern-picker-options{display:flex;gap:6px;}
+  .concern-pick{flex:1;padding:8px 10px;border:2px solid #e0e0e0;font-size:11px;font-weight:700;cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:0.04em;transition:all 0.15s ease;font-family:var(--font);}
+  .concern-pick:hover{border-color:#999;transform:translateY(-1px);}
+  .concern-pick.selected{border-color:var(--black);background:var(--black);color:var(--white);transform:translateY(0);}
+
+  .drawer-body{flex:1;overflow-y:auto;min-height:0;}
+  .slot{border-bottom:1px solid #e8e8e8;}
+  .slot-header{padding:10px 24px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .slot-header:hover{background:var(--grey);}
+  .slot-label{font-family:var(--mono);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;}
+  .slot-meet .slot-label{color:var(--blue);}
+  .slot-amplify .slot-label{color:#b8960a;}
+  .slot-turn .slot-label{color:#c06000;}
+  .slot-move .slot-label{color:#2e7d32;}
+  .slot-selection{font-size:10px;color:#999;font-style:italic;max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .slot-selection.chosen{color:var(--black);font-style:normal;font-weight:600;}
+  .slot-options{display:none;padding:0 24px 12px;}
+  .slot.expanded .slot-options{display:block;}
+  .slot-option{padding:8px 12px;margin-bottom:4px;font-size:12px;line-height:1.45;color:#666;border:1.5px solid #e8e8e8;cursor:pointer;transition:all 0.15s ease;}
+  .slot-option:hover{border-color:#999;color:var(--black);background:#fafaf8;}
+  .slot-option.selected{border-color:var(--black);color:var(--black);background:var(--grey);font-weight:500;border-left:4px solid var(--black);}
+  .slot-option.skip-opt{color:#bbb;font-style:italic;border-style:dashed;}
+
+  .drawer-preview{padding:12px 24px;border-top:2px solid var(--black);flex-shrink:0;}
+  .preview-label{font-family:var(--mono);font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin-bottom:6px;}
+  .preview-text{font-size:12px;line-height:1.5;color:#555;min-height:36px;}
+  .preview-text .frag{margin-right:3px;}
+  .preview-text .frag-meet{color:var(--blue);}
+  .preview-text .frag-amplify{color:#b8960a;}
+  .preview-text .frag-turn{color:#c06000;}
+  .preview-text .frag-move{color:#2e7d32;}
+  .preview-text .empty{color:#ccc;font-style:italic;}
+
+  .drawer-footer{padding:8px 24px 12px;display:flex;justify-content:flex-end;border-top:1px solid #e8e8e8;flex-shrink:0;}
+  .drawer-post-btn{background:var(--black);color:var(--white);border:none;padding:8px 24px;font-family:var(--font);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:opacity 0.2s;}
+  .drawer-post-btn:hover{opacity:0.8;}
+  .drawer-post-btn:disabled{opacity:0.2;cursor:default;}
+
+  /* ===== DEBRIEF ===== */
+  .debrief-overlay{
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:var(--white);z-index:200;
+    flex-direction:column;overflow-y:auto;
+  }
+  .debrief-overlay.open{display:flex;}
+  .debrief-header{padding:40px 48px 28px;border-bottom:3px solid var(--black);flex-shrink:0;}
+  .debrief-result{font-size:64px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;line-height:1;}
+  .debrief-result.pass{color:var(--blue);}
+  .debrief-result.fail{color:var(--red);}
+  .debrief-subtitle{font-size:15px;color:#555;margin-top:10px;line-height:1.55;max-width:480px;}
+  .debrief-body{flex:1;padding:24px 48px;overflow-y:auto;}
+  .debrief-section{margin-bottom:28px;}
+  .debrief-section-title{font-family:var(--mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e0e0e0;}
+  .debrief-stats{display:flex;gap:24px;margin-bottom:4px;}
+  .debrief-stat{display:flex;flex-direction:column;gap:2px;}
+  .debrief-stat{padding:12px 16px;border:2px solid #e8e8e8;min-width:100px;}
+  .debrief-stat-val{font-size:32px;font-weight:900;}
+  .debrief-stat-val.blue{color:var(--blue);}
+  .debrief-stat-val.red{color:var(--red);}
+  .debrief-stat-val.yellow{color:#b8960a;}
+  .debrief-stat-label{font-family:var(--mono);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#999;}
+  .debrief-stat-delta{font-size:10px;font-weight:700;font-family:var(--mono);}
+  .debrief-stat-delta.up{color:var(--blue);}
+  .debrief-stat-delta.down{color:var(--red);}
+  .debrief-posts{display:flex;flex-direction:column;gap:6px;}
+  .debrief-post-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid #e8e8e8;font-size:11px;transition:border-color 0.2s;}
+  .debrief-post-row:hover{border-color:#999;}
+  .debrief-post-num{font-weight:800;font-size:12px;min-width:20px;color:#999;}
+  .debrief-post-concern{font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;min-width:64px;}
+  .debrief-post-stages{display:flex;gap:4px;flex:1;}
+  .debrief-stage-pip{font-family:var(--mono);font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;padding:2px 6px;}
+  .debrief-stage-pip.strong{background:var(--blue);color:var(--white);}
+  .debrief-stage-pip.correct{background:var(--blue);color:var(--white);}
+  .debrief-stage-pip.suboptimal{background:#e0e0e0;color:#999;}
+  .debrief-stage-pip.trap{background:var(--red);color:var(--white);}
+  .debrief-stage-pip.skipped{background:none;border:1px dashed #ccc;color:#ccc;}
+  .debrief-post-verdict{font-family:var(--mono);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.06em;min-width:40px;text-align:right;}
+  .debrief-post-verdict.hit{color:var(--blue);}
+  .debrief-post-verdict.weak{color:#b8960a;}
+  .debrief-post-verdict.trap{color:var(--red);}
+  .debrief-diagnosis{padding:20px;background:var(--grey);font-size:13px;line-height:1.7;color:#333;margin-bottom:8px;border-left:4px solid var(--black);}
+  .dig-deeper-btn{background:none;border:2px solid var(--black);padding:8px 20px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;margin-top:8px;}
+  .dig-deeper-btn:hover{background:var(--black);color:var(--white);}
+  .dig-deeper-content{display:none;margin-top:16px;padding:16px;background:#f8f8f6;font-size:12px;line-height:1.7;color:#444;}
+  .dig-deeper-content.open{display:block;}
+  .dig-deeper-content p{margin-bottom:10px;}
+  .dig-deeper-content strong{color:var(--black);}
+  .debrief-footer{padding:16px 48px;border-top:2px solid var(--black);display:flex;justify-content:flex-end;gap:12px;flex-shrink:0;}
+  .debrief-btn{padding:10px 28px;font-family:var(--font);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:opacity 0.2s;border:none;}
+  .debrief-btn.primary{background:var(--blue);color:var(--white);}
+  .debrief-btn.secondary{background:var(--black);color:var(--white);}
+  .debrief-btn:hover{opacity:0.8;}
+</style>
+</head>
+<body>
+
+<!-- ==================== BRIEFING ==================== -->
+<div class="briefing" id="briefing">
+  <div class="briefing-panels">
+
+    <!-- 1: Title -->
+    <div class="b-panel active" id="bp1">
+      <div class="b-inner">
+        <h2><span class="blue">Meet</span> &amp;<br><span class="blue">Move</span></h2>
+        <div class="subtitle">A Narrative Strategy Simulator</div>
+        <div class="title-shapes">
+          <div class="shape-circle"></div>
+          <div class="shape-square"></div>
+          <div class="shape-triangle"></div>
+        </div>
+        <p style="margin-top:20px;font-family:var(--mono);font-size:9px;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;">Built on LightSwitch Phase 1 research by Ripple Research</p>
+      </div>
+    </div>
+
+    <!-- 2: Veritania -->
+    <div class="b-panel" id="bp2">
+      <div class="b-inner">
+        <h2>Veritania</h2>
+        <p><strong>Veritania</strong> is a fictional European country. Farming, energy costs, and trust in government are the defining issues.</p>
+        <p>The government is preparing to pass the <strong>Living Landscapes Act</strong>, a law requiring 15% of agricultural land to be set aside for nature recovery by 2035.</p>
+        <p>The opposition is already campaigning against it.</p>
+      </div>
+    </div>
+
+    <!-- 3: Your role -->
+    <div class="b-panel" id="bp3">
+      <div class="b-inner">
+        <h2>Your role</h2>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="width:40px;height:40px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--white);">VG</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;">Veritania Greens</div>
+            <div style="font-family:var(--mono);font-size:10px;color:#999;">@veritaniagreens</div>
+          </div>
+        </div>
+        <p>You are the <strong>communications director</strong> of Veritania Greens, a national environmental organisation.</p>
+        <p>Your team has <strong>6 posts</strong> to build public support for the Living Landscapes Act before the vote.</p>
+      </div>
+    </div>
+
+    <!-- 4: Marc (blue bg) -->
+    <div class="b-panel scene-blue" id="bp4">
+      <div class="b-inner" style="align-items:center;">
+        <div class="scene-img-wrap">
+          <img src="uploads/Marc.png" alt="Marc sitting in a café">
+          <div class="thought-bubble" id="marc-thought"></div>
+        </div>
+        <div class="scene-name">Marc</div>
+        <div class="scene-stance">Supports nature protection · Feels powerless</div>
+      </div>
+    </div>
+
+    <!-- 5: Marie (yellow bg) -->
+    <div class="b-panel scene-yellow" id="bp5">
+      <div class="b-inner" style="align-items:center;">
+        <div class="scene-img-wrap">
+          <img src="uploads/Marie.png" alt="Marie sitting on a bus">
+          <div class="thought-bubble" id="marie-thought"></div>
+        </div>
+        <div class="scene-name">Marie</div>
+        <div class="scene-stance">Undecided · Could go either way</div>
+      </div>
+    </div>
+
+    <!-- 6: Michel (red bg) -->
+    <div class="b-panel scene-red" id="bp6">
+      <div class="b-inner" style="align-items:center;">
+        <div class="scene-img-wrap">
+          <img src="uploads/Michel.png" alt="Michel sitting on a farm">
+          <div class="thought-bubble" id="michel-thought"></div>
+        </div>
+        <div class="scene-name">Michel</div>
+        <div class="scene-stance">Skeptical · Leaning opposition</div>
+      </div>
+    </div>
+
+    <!-- 7: The concerns -->
+    <div class="b-panel" id="bp7">
+      <div class="b-inner">
+        <h2>The concerns</h2>
+        <p>Across Veritania, three concerns keep coming up.</p>
+        <div class="b-concerns">
+          <div class="b-concern-item">"Farming is getting harder"</div>
+          <div class="b-concern-item">"Everything is getting more expensive"</div>
+          <div class="b-concern-item">"Elites control everything"</div>
+        </div>
+        <p style="margin-top:16px;">The opposition is already using these concerns to turn people against the Act.</p>
+      </div>
+    </div>
+
+    <!-- 8: The formula -->
+    <div class="b-panel" id="bp8">
+      <div class="b-inner">
+        <h2>Every message has four parts</h2>
+        <div class="b-formula">
+          <div class="b-step"><span class="b-step-num" style="color:var(--blue)">Meet</span><span class="b-step-text">Start with what they feel. Not what you think.</span></div>
+          <div class="b-step"><span class="b-step-num" style="color:#b8960a">Amplify</span><span class="b-step-text">Make it specific. A place, a number, something real.</span></div>
+          <div class="b-step"><span class="b-step-num" style="color:#c06000">Turn</span><span class="b-step-text">Name the real cause. Not a scapegoat.</span></div>
+          <div class="b-step"><span class="b-step-num" style="color:#2e7d32">Move</span><span class="b-step-text">Show them the law is on their side.</span></div>
+        </div>
+        <div class="b-warning">Some options will sound right but push people away.</div>
+      </div>
+    </div>
+
+    <!-- 9: Go -->
+    <div class="b-panel scene-black" id="bp9">
+      <div class="b-inner">
+        <h2 style="color:var(--white);">Your campaign starts now</h2>
+        <p>You have <strong>6 posts</strong> to shift the debate before the vote.</p>
+        <p>Choose which concerns to address. Build your message. Watch the population react.</p>
+        <p class="go-warning">The opposition is already posting. Every moment you wait, they gain ground.</p>
+      </div>
+    </div>
+
+  </div>
+  <div class="briefing-footer">
+    <div class="b-dots"><div class="b-dot active"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div></div>
+    <button class="b-btn" id="b-btn">Next</button>
+  </div>
+</div>
+
+<!-- ==================== MAIN GAME ==================== -->
+<header>
+  <h1><span>Meet &amp; Move</span><small>Narrative Strategy Simulator</small></h1>
+  <div class="header-controls">
+    <div class="status"><div class="pulse-dot"><div class="core"></div><div class="ring"></div></div>Opposition Active</div>
+  </div>
+</header>
+
+<div class="info-row">
+  <div class="spectrum-wrap">
+    <div class="spectrum-label">Population Distribution</div>
+    <div class="spectrum-bar"><div class="seg-pro" id="seg-pro"></div><div class="seg-neutral" id="seg-neutral"></div><div class="seg-opp" id="seg-opp"></div></div>
+    <div class="spectrum-pcts">
+      <div class="group"><span class="lbl">Pro</span><span class="val" id="pct-pro">25%</span><span class="delta" id="delta-pro"></span></div>
+      <div class="group"><span class="lbl">Neutral</span><span class="val" id="pct-neutral">60%</span><span class="delta" id="delta-neutral"></span></div>
+      <div class="group"><span class="lbl">Opp</span><span class="val" id="pct-opp">15%</span><span class="delta" id="delta-opp"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="field-wrap">
+  <canvas id="grid-bg"></canvas>
+  <canvas id="field"></canvas>
+  <div class="flash-overlay" id="flash"></div>
+  <div id="label-marc" class="particle-label">Marc</div>
+  <div id="label-marie" class="particle-label">Marie</div>
+  <div id="label-michel" class="particle-label">Michel</div>
+  <div class="legend">
+    <span><svg width="10" height="10" style="vertical-align:middle;margin-right:3px"><circle cx="5" cy="5" r="4" fill="#999"/></svg>Pro</span>
+    <span><svg width="10" height="10" style="vertical-align:middle;margin-right:3px"><rect x="1" y="1" width="8" height="8" fill="#999"/></svg>Neutral</span>
+    <span><svg width="10" height="10" style="vertical-align:middle;margin-right:3px"><polygon points="5,1 9,9 1,9" fill="#999"/></svg>Opp</span>
+  </div>
+</div>
+
+<div class="status-bar" id="lcd-strip">
+  <span class="status-bar-primary dim" id="lcd-primary">--:--</span>
+  <span class="status-bar-secondary dim" id="lcd-secondary">Awaiting your first post</span>
+</div>
+
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header"><span class="drawer-title">Build your campaign post</span><span class="drawer-post-num" id="drawer-post-num"></span><button class="drawer-close" id="drawer-close">&times;</button></div>
+  <div class="concern-picker">
+    <div class="concern-picker-label">Which concern are you addressing?</div>
+    <div class="concern-picker-options">
+      <div class="concern-pick" data-concern="farm">Farming</div>
+      <div class="concern-pick" data-concern="energy">Costs</div>
+      <div class="concern-pick" data-concern="elites">Elites</div>
+    </div>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+  <div class="drawer-preview"><div class="preview-label">Preview</div><div class="preview-text" id="preview-text"><span class="empty">Pick a concern, then build your message...</span></div></div>
+  <div class="drawer-footer"><button class="drawer-post-btn" id="drawer-post-btn" disabled>Post</button></div>
+</div>
+
+<div class="phone-panel">
+  <div class="phone-header">
+    <div class="avatar">VG</div>
+    <div class="account-info"><div class="account-name">Veritania Greens</div><div class="account-handle">@veritaniagreens</div></div>
+  </div>
+  <div class="post-history" id="post-history"></div>
+  <div class="compose-cta">
+    <button class="cta-btn" id="cta-btn">New Post <span class="remaining" id="remaining">6 remaining</span></button>
+  </div>
+</div>
+
+<!-- ==================== DEBRIEF ==================== -->
+<div class="debrief-overlay" id="debrief-overlay">
+  <div class="debrief-header">
+    <div class="debrief-result" id="debrief-result">PASS</div>
+    <div class="debrief-subtitle" id="debrief-subtitle"></div>
+  </div>
+  <div class="debrief-body">
+    <div class="debrief-section">
+      <div class="debrief-section-title">Final population</div>
+      <div class="debrief-stats" id="debrief-stats"></div>
+    </div>
+    <div class="debrief-section">
+      <div class="debrief-section-title">Your 6 posts</div>
+      <div class="debrief-posts" id="debrief-posts"></div>
+    </div>
+    <div class="debrief-section">
+      <div class="debrief-section-title">Diagnosis</div>
+      <div class="debrief-diagnosis" id="debrief-diagnosis"></div>
+      <button class="dig-deeper-btn" id="dig-deeper-btn">Dig deeper</button>
+      <div class="dig-deeper-content" id="dig-deeper-content"></div>
+    </div>
+  </div>
+  <div class="debrief-footer">
+    <button class="debrief-btn secondary" id="debrief-restart">Play Again</button>
+  </div>
+</div>
+
+<script>
+// ===== BRIEFING =====
+let bPanel=1;const bTotal=9;
+const bDots=document.querySelectorAll('.b-dot');
+const bBtn=document.getElementById('b-btn');
+
+// Character thoughts
+const charThoughts={
+  marc:["Another summer of wildfires?","I wish governments moved faster.","We can't keep ignoring this.","But what can one person do?"],
+  marie:["Politicians always promise things...","My energy bill doubled this year.","Is the green transition fair?","I just want someone to be honest."],
+  michel:["Nobody understands farming.","More paperwork. More rules.","They want my land for solar panels?","Who is actually on our side?"],
+};
+let currentThoughtInterval=null;
+
+function startCharacterThoughts(name){
+  stopCharacterThoughts();
+  const el=document.getElementById(name+'-thought');
+  if(!el)return;
+  const thoughts=charThoughts[name];
+  let i=0;
+  function showNext(){
+    el.classList.remove('visible');
+    setTimeout(()=>{
+      el.textContent='\u201C'+thoughts[i]+'\u201D';
+      el.classList.add('visible');
+      i=(i+1)%thoughts.length;
+    },350);
+  }
+  showNext();
+  currentThoughtInterval=setInterval(showNext,3400);
+}
+function stopCharacterThoughts(){
+  if(currentThoughtInterval){clearInterval(currentThoughtInterval);currentThoughtInterval=null;}
+  document.querySelectorAll('.thought-bubble').forEach(el=>el.classList.remove('visible'));
+}
+
+// Panel → character mapping
+const panelCharacter={4:'marc',5:'marie',6:'michel'};
+
+bBtn.addEventListener('click',()=>{
+  // Leaving current panel
+  document.getElementById('bp'+bPanel).classList.remove('active');
+  if(panelCharacter[bPanel])stopCharacterThoughts();
+  bPanel++;
+
+  if(bPanel>bTotal){
+    document.getElementById('briefing').classList.add('hidden');
+    setTimeout(()=>{
+      document.getElementById('briefing').style.display='none';
+      startGame();
+    },600);
+    return;
+  }
+
+  document.getElementById('bp'+bPanel).classList.add('active');
+  bDots.forEach((d,i)=>d.classList.toggle('active',i<bPanel));
+
+  // Entering new panel
+  if(panelCharacter[bPanel])startCharacterThoughts(panelCharacter[bPanel]);
+
+  if(bPanel===bTotal){bBtn.className='b-btn start';bBtn.textContent='Start Campaign';}
+  else{bBtn.textContent='Next';}
+});
+
+// ===== GRID =====
+function drawGrid(){const cv=document.getElementById('grid-bg');const r=cv.parentElement.getBoundingClientRect();const W=r.width,H=r.height,dpr=devicePixelRatio;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);const sp=28;g.strokeStyle='rgba(0,0,0,0.05)';g.lineWidth=0.5;for(let x=sp;x<W;x+=sp){g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke();}for(let y=sp;y<H;y+=sp){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}g.strokeStyle='rgba(0,0,0,0.1)';g.lineWidth=1;for(let x=sp*4;x<W;x+=sp*4){g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke();}for(let y=sp*4;y<H;y+=sp*4){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}}
+
+// ===== PARTICLES =====
+const canvas=document.getElementById('field');const ctx=canvas.getContext('2d');
+const COLORS={pro:{r:0,g:81,b:186},neutral:{r:255,g:204,b:0},opp:{r:227,g:6,b:19}};
+const PC=650,TL=5,WS=0.12,DA=0.96,BD=0.00012,DRIFT_SPEED=0.018;
+let W,H,particles=[];let marcIdx=-1,marieIdx=-1,michelIdx=-1;
+const startPcts={pro:25,neutral:60,opp:15};
+let paused=false,gameOver=false;
+
+function resize(){const r=canvas.parentElement.getBoundingClientRect();W=r.width;H=r.height;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
+
+function stateColor(s){
+  if(s<0.35)return COLORS.pro;
+  if(s<0.65)return COLORS.neutral;
+  return COLORS.opp;
+}
+
+function initParticles(){
+  particles=[];const sp=28,mg=16,proL=sp,proR=sp*5,oppL=W-sp*5,oppR=W-sp,midL=sp*3,midR=W-sp*3;
+  for(let i=0;i<PC;i++){
+    let state,origin,x,y;const r=Math.random();
+    if(r<0.25){state=Math.random()*0.22;origin='circle';x=proL+Math.random()*(proR-proL);y=mg+Math.random()*(H-mg*2);}
+    else if(r<0.85){state=0.28+Math.random()*0.34;origin='square';x=midL+Math.random()*(midR-midL);y=mg+Math.random()*(H-mg*2);}
+    else{state=0.72+Math.random()*0.28;origin='triangle';x=oppL+Math.random()*(oppR-oppL);y=mg+Math.random()*(H-mg*2);}
+    let concern;const cR=Math.random();if(cR<0.38)concern='farm';else if(cR<0.70)concern='energy';else if(cR<0.92)concern='fairness';else concern='none';
+    let ceiling,resistance;
+    if(state<0.10){ceiling=0.18+Math.random()*0.1;resistance=0.93+Math.random()*0.07;}
+    else if(state<0.22){ceiling=0.5+Math.random()*0.15;resistance=0.5+Math.random()*0.25;}
+    else if(state<0.62){ceiling=0.6+Math.random()*0.28;resistance=0.2+Math.random()*0.35;}
+    else if(state<0.78){ceiling=0.85+Math.random()*0.1;resistance=0.15+Math.random()*0.25;}
+    else{ceiling=1.0;resistance=0.93;}
+    particles.push({x,y,vx:0,vy:0,state,origin,ceiling,resistance,concern,floor:Math.max(0,state-0.15-Math.random()*0.15),trail:Array.from({length:TL},()=>({x,y})),nudge:0});
+  }
+  marcIdx=particles.findIndex(p=>p.origin==='circle'&&p.state<0.10);
+  michelIdx=particles.findIndex(p=>p.origin==='triangle'&&p.state>0.85);
+  marieIdx=particles.findIndex(p=>p.origin==='square'&&p.state>0.38&&p.state<0.52&&p.concern==='farm');
+  if(marieIdx>=0){particles[marieIdx].resistance=0.12;particles[marieIdx].ceiling=0.92;particles[marieIdx].floor=0.08;}
+}
+
+function drawShape(o,x,y,sz,col){ctx.fillStyle=col;if(o==='circle'){ctx.beginPath();ctx.arc(x,y,sz,0,Math.PI*2);ctx.fill();}else if(o==='square'){ctx.fillRect(x-sz*0.85,y-sz*0.85,sz*1.7,sz*1.7);}else{ctx.beginPath();ctx.moveTo(x,y-sz*1.15);ctx.lineTo(x+sz,y+sz*0.75);ctx.lineTo(x-sz,y+sz*0.75);ctx.closePath();ctx.fill();}}
+
+function update(){
+  if(paused)return;
+
+  // Calculate current percentages for drift caps
+  let _pro=0,_opp=0;
+  for(const p of particles){if(p.state<0.35)_pro++;else if(p.state>=0.65)_opp++;}
+  const _t=particles.length;
+  const oppPct=Math.round(_opp/_t*100);
+  const proPct=Math.round(_pro/_t*100);
+  // Drift alone caps at 28% opposition / 20% pro floor
+  const driftAllowed=oppPct<28;
+
+  for(const p of particles){
+    p.trail.pop();p.trail.unshift({x:p.x,y:p.y});
+    p.vx+=(Math.random()-0.5)*WS;p.vy+=(Math.random()-0.5)*WS;
+    // Only apply ambient drift if under the cap
+    if(driftAllowed){
+      const room=Math.max(0,p.ceiling-p.state);p.state=Math.min(p.ceiling,p.state+BD*(1-p.resistance)*room);
+    }
+    if(p.nudge!==0){p.state+=p.nudge;p.state=Math.max(p.floor,Math.min(p.ceiling,p.state));p.nudge*=0.90;if(Math.abs(p.nudge)<0.0001)p.nudge=0;}
+    p.vx+=(p.state-0.4)*DRIFT_SPEED;p.vx*=DA;p.vy*=DA;p.x+=p.vx;p.y+=p.vy;
+    const mg=8;if(p.x<mg){p.x=mg;p.vx*=-0.3;}if(p.x>W-mg){p.x=W-mg;p.vx*=-0.3;}if(p.y<mg){p.y=mg;p.vy*=-0.3;}if(p.y>H-mg){p.y=H-mg;p.vy*=-0.3;}
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  for(let i=0;i<particles.length;i++){
+    const p=particles[i];const col=stateColor(p.state);const isNamed=(i===marcIdx||i===marieIdx||i===michelIdx);
+    const colStr='rgb('+col.r+','+col.g+','+col.b+')';
+    for(let j=0;j<p.trail.length;j++){const a=(1-j/p.trail.length)*(isNamed?0.15:0.05);const r=2*(1-j/p.trail.length);ctx.beginPath();ctx.arc(p.trail[j].x,p.trail[j].y,r,0,Math.PI*2);ctx.fillStyle='rgba('+col.r+','+col.g+','+col.b+','+a+')';ctx.fill();}
+    drawShape(p.origin,p.x,p.y,isNamed?5.5:3.8,colStr);
+    if(isNamed){ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.strokeStyle='rgba('+col.r+','+col.g+','+col.b+',0.45)';ctx.lineWidth=1.5;ctx.stroke();}
+  }
+  function posLabel(id,idx){const el=document.getElementById(id);if(idx<0||idx>=particles.length)return;const p=particles[idx];const col=stateColor(p.state);el.style.color='rgb('+col.r+','+col.g+','+col.b+')';el.style.left=(p.x>W-65?(p.x-el.offsetWidth-13):(p.x+13))+'px';el.style.top=(p.y>H-22?(p.y-16):p.y<22?(p.y+12):(p.y-7))+'px';}
+  posLabel('label-marc',marcIdx);posLabel('label-marie',marieIdx);posLabel('label-michel',michelIdx);
+
+  let pro=0,neutral=0,opp=0;for(const p of particles){if(p.state<0.35)pro++;else if(p.state<0.65)neutral++;else opp++;}
+  const t=particles.length;const pp=Math.round(pro/t*100),pn=Math.round(neutral/t*100),po=Math.round(opp/t*100);
+  document.getElementById('seg-pro').style.width=pp+'%';document.getElementById('seg-neutral').style.width=pn+'%';document.getElementById('seg-opp').style.width=po+'%';
+  document.getElementById('pct-pro').textContent=pp+'%';document.getElementById('pct-neutral').textContent=pn+'%';document.getElementById('pct-opp').textContent=po+'%';
+  const dP=pp-startPcts.pro,dN=pn-startPcts.neutral,dO=po-startPcts.opp;
+  const dpE=document.getElementById('delta-pro'),dnE=document.getElementById('delta-neutral'),doE=document.getElementById('delta-opp');
+  if(dP>0){dpE.textContent='\u25B2+'+dP+'%';dpE.className='delta pos';}else if(dP<0){dpE.textContent='\u25BC'+dP+'%';dpE.className='delta neg';}else{dpE.textContent='';dpE.className='delta';}
+  if(dN>0){dnE.textContent='\u25B2+'+dN+'%';dnE.className='delta neutral-change';}else if(dN<0){dnE.textContent='\u25BC'+dN+'%';dnE.className='delta neutral-change';}else{dnE.textContent='';dnE.className='delta';}
+  if(dO>0){doE.textContent='\u25B2+'+dO+'%';doE.className='delta opp-pos';}else if(dO<0){doE.textContent='\u25BC'+dO+'%';doE.className='delta opp-neg';}else{doE.textContent='';doE.className='delta';}
+}
+
+function loop(){update();draw();requestAnimationFrame(loop);}
+
+// ===== ICONS + CARDS =====
+const SVG_ICONS={
+  comment:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
+  repost:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
+  heart:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+};
+function countUp(el,target,dur){const s=performance.now();function tick(n){const t=Math.min((n-s)/dur,1);el.textContent=target>=1000?Math.round(target*(1-Math.pow(1-t,3))).toLocaleString():Math.round(target*(1-Math.pow(1-t,3)));if(t<1)requestAnimationFrame(tick);}requestAnimationFrame(tick);}
+function fakeMetrics(len){const l=Math.floor(40+Math.random()*300+len*0.5);return{likes:l,reposts:Math.floor(l*(0.05+Math.random()*0.15)),replies:Math.floor(l*(0.02+Math.random()*0.08))};}
+function addPostCard(text,label){const m=fakeMetrics(text.length);const card=document.createElement('div');card.className='post-card';card.innerHTML='<div class="post-card-text">'+text+'</div><div class="post-card-meta"><span class="metric"><span class="metric-icon">'+SVG_ICONS.comment+'</span><span class="num" data-target="'+m.replies+'">0</span></span><span class="metric"><span class="metric-icon">'+SVG_ICONS.repost+'</span><span class="num" data-target="'+m.reposts+'">0</span></span><span class="metric"><span class="metric-icon">'+SVG_ICONS.heart+'</span><span class="num" data-target="'+m.likes+'">0</span></span></div>';const h=document.getElementById('post-history');h.insertBefore(card,h.firstChild);h.scrollTop=0;card.querySelectorAll('.num[data-target]').forEach((el,i)=>{setTimeout(()=>countUp(el,parseInt(el.dataset.target),800+i*200),100+i*150);});}
+
+// ===== STATUS BAR FEEDBACK =====
+let lcdTimeout=null;
+function setLCD(primary,secondary,isDim){
+  if(lcdTimeout)clearTimeout(lcdTimeout);
+  const pEl=document.getElementById('lcd-primary');const sEl=document.getElementById('lcd-secondary');
+  // Crossfade the secondary text
+  sEl.classList.add('fade-out');
+  setTimeout(()=>{
+    pEl.textContent=primary;
+    pEl.className='status-bar-primary'+(isDim?' dim':'');
+    if(primary==='TRAP')pEl.classList.add('trap');
+    else if(primary==='HIT')pEl.classList.add('hit');
+    sEl.textContent=secondary;
+    sEl.className='status-bar-secondary'+(isDim?' dim':'')+' fade-in';
+  },150);
+}
+function setLCDDelayed(primary,secondary,delay){
+  lcdTimeout=setTimeout(()=>{
+    const sEl=document.getElementById('lcd-secondary');
+    sEl.textContent=secondary;sEl.className='status-bar-secondary dim';
+  },delay);
+}
+
+// Idle nudges
+let idleTicks=0;
+setInterval(()=>{
+  if(paused||gameOver)return;
+  idleTicks++;
+  if(idleTicks>15&&postsRemaining>0){
+    const sEl=document.getElementById('lcd-secondary');
+    if(sEl.classList.contains('dim')){
+      const nudges=['Opposition still posting.','The middle is drifting.','Your audience is waiting.','Inaction has a cost.'];
+      sEl.textContent=nudges[Math.floor(Math.random()*nudges.length)];
+    }
+  }
+},3000);
+
+// ===== MESSAGE LIBRARY =====
+const MSG_LIB={
+  farm:{
+    label:'Farming',
+    rounds:[
+      {
+        meet:[{id:'fm1',text:'Farming is getting harder every year. Everyone can see it.',score:'strong'},{id:'fm2',text:"The people who grow our food are going under. Nobody's talking about it.",score:'strong'},{id:'fm3',text:"Veritania's agricultural sector faces significant structural challenges.",score:'suboptimal'}],
+        amplify:[{id:'fa1',text:'Three farms closed in the Aurel Valley this spring. Not one made the news.',score:'strong'},{id:'fa2',text:'Twenty years ago this valley fed the whole region. Now half the fields are empty.',score:'strong'},{id:'fa3',text:'Studies show a worrying trend in agricultural output across Europe.',score:'suboptimal'}],
+        turn:[{id:'ft1',text:"It's not the rules killing farms. It's the drought, the dead soil, the water that isn't coming back.",score:'correct'},{id:'ft2',text:"Farmers need healthy land to survive. That's all this comes down to.",score:'correct'},{id:'ft3',text:'Brussels keeps adding regulations that nobody on the ground asked for.',score:'trap'},{id:'ft4',text:'Big solar companies are buying up farmland while family farms go under.',score:'trap'}],
+        move:[{id:'fv1',text:"If the land dies, farming dies. That's what this law is actually about.",score:'strong'},{id:'fv2',text:"Farmers need healthy land. That's all this law does.",score:'strong'},{id:'fv3',text:'The science is on our side. The facts speak for themselves.',score:'trap'},{id:'fv4',text:"This is bigger than one law. Share this and let's build something.",score:'trap'}],
+      },
+      {
+        meet:[{id:'fm4',text:"Every season it gets worse. Smaller harvests, higher costs.",score:'strong'},{id:'fm5',text:"My neighbour sold his farm last month. Third one this year.",score:'strong'},{id:'fm6',text:"Agricultural productivity metrics indicate a declining trajectory.",score:'suboptimal'}],
+        amplify:[{id:'fa4',text:"The Kosta river used to irrigate half the province. Last summer it ran dry.",score:'strong'},{id:'fa5',text:"Fertiliser costs are up 60%. You can't grow food at those prices.",score:'strong'},{id:'fa6',text:"Multiple indicators suggest systemic pressure on the agricultural sector.",score:'suboptimal'}],
+        turn:[{id:'ft5',text:"The water is disappearing. The seasons are shifting. That's what's killing farms.",score:'correct'},{id:'ft6',text:"Healthy soil, clean water, stable seasons. Lose those and no regulation matters.",score:'correct'},{id:'ft7',text:"Foreign imports are undercutting our farmers. We need trade barriers.",score:'trap'},{id:'ft8',text:"The green agenda values birds over people who grow food.",score:'trap'}],
+        move:[{id:'fv5',text:"This law keeps water in the ground and soil on the fields. That's the basics.",score:'strong'},{id:'fv6',text:"Protecting the land protects the people who work it. Same thing.",score:'strong'},{id:'fv7',text:"We need to raise awareness about sustainable agriculture.",score:'trap'},{id:'fv8',text:"Act now before it's too late. The planet needs us.",score:'trap'}],
+      },
+    ],
+  },
+  energy:{
+    label:'Costs',
+    rounds:[
+      {
+        meet:[{id:'em1',text:"Everything costs more. Heating, food, fuel. It doesn't stop.",score:'strong'},{id:'em2',text:'The bills keep going up. Something has to give.',score:'strong'},{id:'em3',text:'Rising costs are a challenge, but the transition will deliver long-term savings.',score:'suboptimal'}],
+        amplify:[{id:'ea1',text:"Veritanians pay more for energy than any of our neighbours. That's not bad luck.",score:'strong'},{id:'ea2',text:'Last winter, one in five households cut their heating to cover other bills.',score:'strong'},{id:'ea3',text:'Energy prices are rising globally due to complex geopolitical factors.',score:'suboptimal'}],
+        turn:[{id:'et1',text:'We keep buying energy from abroad and then wonder why the price keeps going up.',score:'correct'},{id:'et2',text:"The bills are high because we buy all our energy from somewhere else. That's the actual problem.",score:'correct'},{id:'et3',text:'Green taxes and climate levies are making life unaffordable for ordinary people.',score:'trap'},{id:'et4',text:'Energy companies are profiteering while families struggle.',score:'trap'}],
+        move:[{id:'ev1',text:'Energy from our own land means bills we actually control.',score:'strong'},{id:'ev2',text:"The people paying the most should get the most help. That's what this vote is about.",score:'strong'},{id:'ev3',text:'We need to protect the green transition despite short-term costs.',score:'trap'},{id:'ev4',text:'The data clearly shows renewables are cheaper in the long run.',score:'trap'}],
+      },
+      {
+        meet:[{id:'em4',text:"You work full time and still can't keep up with the bills. That's not right.",score:'strong'},{id:'em5',text:"Prices go up. Wages don't. Everyone knows where this leads.",score:'strong'},{id:'em6',text:"Economic adjustments are necessary for long-term energy security.",score:'suboptimal'}],
+        amplify:[{id:'ea4',text:"A family in Kosta pays 40% more for electricity than a family in the capital.",score:'strong'},{id:'ea5',text:"Three years ago you could fill a tank for 60. Now it's over 100.",score:'strong'},{id:'ea6',text:"Macroeconomic analysis shows energy price volatility across all markets.",score:'suboptimal'}],
+        turn:[{id:'et5',text:"Every euro we send abroad for gas is a euro that doesn't stay here.",score:'correct'},{id:'et6',text:"The price isn't high because of green policies. It's high because we don't produce our own.",score:'correct'},{id:'et7',text:"Renewable subsidies are driving up costs for everyone.",score:'trap'},{id:'et8',text:"The government is taxing us into poverty with climate levies.",score:'trap'}],
+        move:[{id:'ev5',text:"Local energy means local jobs and lower bills. That's what this vote is about.",score:'strong'},{id:'ev6',text:"Stop sending money abroad for energy we could make here.",score:'strong'},{id:'ev7',text:"Trust the process. The transition will pay off eventually.",score:'trap'},{id:'ev8',text:"Contact your representative and demand change.",score:'trap'}],
+      },
+    ],
+  },
+  elites:{
+    label:'Elites',
+    rounds:[
+      {
+        meet:[{id:'lm1',text:'Decisions get made. We deal with the consequences. Same story, every time.',score:'strong'},{id:'lm2',text:"Nobody asks the people who are most affected. Then they wonder why there's no trust.",score:'strong'},{id:'lm3',text:'Public participation in policy processes is essential for democratic legitimacy.',score:'suboptimal'}],
+        amplify:[{id:'la1',text:'Rural towns are emptying out. Nobody in the capital notices.',score:'strong'},{id:'la2',text:'Small towns pay the price. Big cities make the decisions.',score:'strong'},{id:'la3',text:'Surveys indicate declining trust in institutions across demographics.',score:'suboptimal'}],
+        turn:[{id:'lt1',text:"It's not that nobody cares. It's that the wrong people are at the table.",score:'correct'},{id:'lt2',text:"The policy might be fine. But nobody asked the people it actually affects.",score:'correct'},{id:'lt3',text:'The political class has completely lost touch with real people.',score:'trap'},{id:'lt4',text:'NGOs and lobbyists in Brussels are driving this agenda for their own benefit.',score:'trap'}],
+        move:[{id:'lv1',text:"There's money in this law for the towns that need it most. That's the part that matters.",score:'strong'},{id:'lv2',text:"Get the right people in the room and the policy gets better. That's all anyone's asking.",score:'strong'},{id:'lv3',text:'We need to set aside our differences and unite for the planet.',score:'trap'},{id:'lv4',text:'Join us and help spread the word. Link in bio.',score:'trap'}],
+      },
+      {
+        meet:[{id:'lm4',text:"They write the rules. We follow them. If we can't, that's our problem.",score:'strong'},{id:'lm5',text:"Every time something changes, same people decide, same people pay.",score:'strong'},{id:'lm6',text:"Stakeholder engagement frameworks need significant reform.",score:'suboptimal'}],
+        amplify:[{id:'la4',text:"The last public consultation got 200 responses. The law affects 2 million people.",score:'strong'},{id:'la5',text:"There are more lobbyists in the capital than farmers in the Aurel Valley.",score:'strong'},{id:'la6',text:"Democratic participation indices remain below optimal thresholds.",score:'suboptimal'}],
+        turn:[{id:'lt5',text:"The problem isn't the law. The problem is who wrote it without asking.",score:'correct'},{id:'lt6',text:"People don't resist change. They resist being changed by someone who never asked.",score:'correct'},{id:'lt7',text:"The entire system is corrupt. None of them represent us.",score:'trap'},{id:'lt8',text:"Unelected bureaucrats in Brussels shouldn't have a say in our lives.",score:'trap'}],
+        move:[{id:'lv5',text:"This law has funding for local communities. That only works if local people shape how it's spent.",score:'strong'},{id:'lv6',text:"Better decisions happen when the people affected are at the table. That's the fight worth having.",score:'strong'},{id:'lv7',text:"We need to dismantle the old power structures entirely.",score:'trap'},{id:'lv8',text:"Like and subscribe for more updates on holding power to account.",score:'trap'}],
+      },
+    ],
+  },
+};
+
+// Track how many times each concern has been used
+let concernVisits={farm:0,energy:0,elites:0};
+
+// Shuffle array in place (Fisher-Yates)
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+
+let postsRemaining=6,selectedConcern=null,selections={meet:null,amplify:null,turn:null,move:null};
+let postLog=[];
+
+function buildSlots(key){
+  const concern=MSG_LIB[key];
+  const roundIdx=Math.min(concernVisits[key],concern.rounds.length-1);
+  const c=concern.rounds[roundIdx];
+  const body=document.getElementById('drawer-body');body.innerHTML='';
+  const stages=['meet','amplify','turn','move'];const labels={meet:'1. Meet',amplify:'2. Amplify',turn:'3. Turn',move:'4. Move'};
+  stages.forEach(stage=>{
+    const stageOpts=shuffle([...c[stage]]); // shuffle a copy
+    const slot=document.createElement('div');slot.className='slot slot-'+stage;
+    const header=document.createElement('div');header.className='slot-header';
+    header.innerHTML='<span class="slot-label">'+labels[stage]+'</span><span class="slot-selection" id="sel-'+stage+'">Tap to choose...</span>';
+    header.addEventListener('click',()=>{document.querySelectorAll('.slot').forEach(s=>s.classList.remove('expanded'));slot.classList.toggle('expanded');});
+    const opts=document.createElement('div');opts.className='slot-options';
+    stageOpts.forEach(opt=>{
+      const el=document.createElement('div');el.className='slot-option';el.textContent=opt.text;
+      el.addEventListener('click',()=>{opts.querySelectorAll('.slot-option').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');selections[stage]=opt;document.getElementById('sel-'+stage).textContent=opt.text;document.getElementById('sel-'+stage).classList.add('chosen');slot.classList.remove('expanded');updatePreview();});
+      opts.appendChild(el);
+    });
+    const skip=document.createElement('div');skip.className='slot-option skip-opt';skip.textContent='Skip this stage';
+    skip.addEventListener('click',()=>{opts.querySelectorAll('.slot-option').forEach(o=>o.classList.remove('selected'));skip.classList.add('selected');selections[stage]=null;document.getElementById('sel-'+stage).textContent='Skipped';document.getElementById('sel-'+stage).classList.add('chosen');slot.classList.remove('expanded');updatePreview();});
+    opts.appendChild(skip);slot.appendChild(header);slot.appendChild(opts);body.appendChild(slot);
+  });
+  selections={meet:null,amplify:null,turn:null,move:null};updatePreview();
+}
+
+function updatePreview(){
+  const p=document.getElementById('preview-text');const stages=['meet','amplify','turn','move'];const colors={meet:'frag-meet',amplify:'frag-amplify',turn:'frag-turn',move:'frag-move'};
+  let hasAny=false,html='';stages.forEach(s=>{if(selections[s]){html+='<span class="frag '+colors[s]+'">'+selections[s].text+' </span>';hasAny=true;}});
+  if(!hasAny)html='<span class="empty">Select options to build your message...</span>';
+  p.innerHTML=html;document.getElementById('drawer-post-btn').disabled=!hasAny;
+}
+
+// ===== SCORING =====
+function scorePost(){
+  const stages=['meet','amplify','turn','move'];let sc=0,strong=0,trap=0,sub=0;
+  stages.forEach(s=>{const sel=selections[s];if(!sel)return;sc++;if(sel.score==='strong'||sel.score==='correct')strong++;else if(sel.score==='trap')trap++;else sub++;});
+  const hasMeet=selections.meet&&selections.meet.score==='strong';
+  const hasTurn=selections.turn&&selections.turn.score==='correct';
+  const coherent=hasMeet&&hasTurn;
+  let effect=0;
+  if(trap>=2)effect=-0.06;
+  else if(trap===1)effect=-0.03;
+  else if(!hasMeet){effect=sub>0?0.002:0;}
+  else if(strong===4&&coherent)effect=0.07;
+  else if(strong>=3&&coherent)effect=0.05;
+  else if(strong>=3)effect=0.035;
+  else if(strong>=2&&hasMeet)effect=0.025;
+  else if(strong===1)effect=0.005;
+  else if(sub>0)effect=0.002;
+  return{effect,strong,trap,sub,coherent,stageCount:sc};
+}
+
+function applyScore(score){
+  idleTicks=0;
+  if(score.trap>=2){setLCD('TRAP','You reinforced the opposition framing.',false);setLCDDelayed('TRAP','That message pushed people the wrong direction.',4000);}
+  else if(score.trap===1){setLCD('TRAP','One of your choices used opposition framing.',false);setLCDDelayed('TRAP','The trap cancelled out your good choices.',4000);}
+  else if(score.effect>=0.05){setLCD('HIT','Strong post. You met the concern and named the real cause.',false);setLCDDelayed('HIT',postsRemaining+' posts remaining. Keep the pressure on.',4000);}
+  else if(score.effect>=0.025){setLCD('HIT','Good post. The middle is listening.',false);setLCDDelayed('HIT','Every stage matters. Did you skip one?',4000);}
+  else if(score.effect>=0.005){setLCD('WEAK','Your message barely landed. You need more stages.',false);setLCDDelayed('WEAK','Meet the concern first. Then amplify, turn, move.',4000);}
+  else if(!score.coherent&&score.strong>0){setLCD('WEAK','You skipped the Meet. Nobody listened to the rest.',false);setLCDDelayed('WEAK','Start with what they feel, not what you think.',4000);}
+  else{setLCD('WEAK','Too vague or too institutional. Most people scrolled past.',false);setLCDDelayed('WEAK','Open with their concern, not your position.',4000);}
+
+  const concernMap={farm:'farm',energy:'energy',elites:'fairness'};
+  const targetConcern=concernMap[selectedConcern];
+
+  for(const p of particles){
+    if(score.effect>0){
+      const isTarget=p.concern===targetConcern;
+      const spillover=!isTarget&&Math.random()<0.15;
+      if((isTarget||spillover)&&p.state>0.25&&p.state<0.80){
+        const suscept=1-Math.abs(p.state-0.5)*1.5;
+        const amount=score.effect*Math.max(suscept,0.1)*(0.5+Math.random()*0.5);
+        p.nudge=-(isTarget?amount:amount*0.3);
+      }
+    }else if(score.effect<0&&p.state>0.2&&p.state<0.7){
+      p.nudge=Math.abs(score.effect)*(0.3+Math.random()*0.5);
+    }
+  }
+  const flash=document.getElementById('flash');
+  if(score.trap>=1){flash.classList.add('trap-flash');}
+  else{flash.classList.remove('trap-flash');}
+  flash.classList.add('active');setTimeout(()=>flash.classList.remove('active'),500);
+}
+
+// ===== DRAWER =====
+function openDrawer(){if(gameOver||postsRemaining<=0)return;selectedConcern=null;selections={meet:null,amplify:null,turn:null,move:null};document.getElementById('drawer-body').innerHTML='';document.getElementById('preview-text').innerHTML='<span class="empty">Pick a concern, then build your message...</span>';document.getElementById('drawer-post-btn').disabled=true;document.querySelectorAll('.concern-pick').forEach(el=>el.classList.remove('selected'));document.getElementById('drawer-post-num').textContent='Post '+(7-postsRemaining)+' of 6';document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');}
+
+document.getElementById('cta-btn').addEventListener('click',openDrawer);
+document.getElementById('drawer-close').addEventListener('click',closeDrawer);
+document.getElementById('drawer-overlay').addEventListener('click',closeDrawer);
+
+document.querySelectorAll('.concern-pick').forEach(el=>{el.addEventListener('click',()=>{document.querySelectorAll('.concern-pick').forEach(e=>e.classList.remove('selected'));el.classList.add('selected');selectedConcern=el.dataset.concern;buildSlots(selectedConcern);});});
+
+document.getElementById('drawer-post-btn').addEventListener('click',()=>{
+  if(!selectedConcern||postsRemaining<=0)return;
+  const text=['meet','amplify','turn','move'].map(s=>selections[s]?selections[s].text:'').filter(Boolean).join(' ');
+  if(!text)return;
+  const score=scorePost();
+  concernVisits[selectedConcern]++;
+  postLog.push({num:7-postsRemaining,concern:selectedConcern,concernLabel:MSG_LIB[selectedConcern].label,selections:{...selections},score:score,verdict:score.trap>=1?'trap':score.effect>=0.025?'hit':'weak'});
+  applyScore(score);addPostCard(text,null);
+  postsRemaining--;document.getElementById('remaining').textContent=postsRemaining+' remaining';
+  if(postsRemaining<=0){
+    document.getElementById('cta-btn').disabled=true;
+    document.getElementById('remaining').textContent='0 remaining';
+    setTimeout(()=>{
+      const pcts=getCurrentPcts();
+      const passed=pcts.pro>=22&&pcts.opp<=30;
+      gameOver=true;
+      document.querySelector('.pulse-dot .ring').style.animation='none';
+      document.querySelector('.pulse-dot .core').style.background='#999';
+      document.querySelector('.status').innerHTML='<span style="color:#999;">Vote concluded</span>';
+      if(passed){setLCD('PASS','The Living Landscapes Act has passed.',false);}
+      else{setLCD('FAIL','The Act has failed.',false);}
+      setTimeout(()=>showDebrief(pcts,passed),2000);
+    },3000);
+  }
+  closeDrawer();
+});
+
+function getCurrentPcts(){let pro=0,n=0,opp=0;for(const p of particles){if(p.state<0.35)pro++;else if(p.state<0.65)n++;else opp++;}const t=particles.length;return{pro:Math.round(pro/t*100),neutral:Math.round(n/t*100),opp:Math.round(opp/t*100)};}
+
+// ===== DEBRIEF =====
+function generateDiagnosis(pcts,passed,posts){
+  const concerns={farm:0,energy:0,elites:0};
+  let hits=0,traps=0,weaks=0,meetSkips=0;
+  posts.forEach(p=>{concerns[p.concern]=(concerns[p.concern]||0)+1;if(p.verdict==='hit')hits++;else if(p.verdict==='trap')traps++;else weaks++;if(!p.selections.meet)meetSkips++;});
+  const addressed=Object.keys(concerns).filter(k=>concerns[k]>0);
+  const neglected=Object.keys(concerns).filter(k=>concerns[k]===0);
+  let diag='';
+  if(passed){
+    diag='The Living Landscapes Act passed. ';
+    if(hits>=5)diag+='Your messaging was consistently strong. You met real concerns and named real causes.';
+    else if(hits>=3)diag+='Your strategy worked, though not every post landed. '+hits+' of your 6 posts connected with the middle.';
+    else diag+='The Act passed, but narrowly. Better messaging could have built a stronger mandate.';
+  }else{
+    diag='The Act failed. ';
+    if(traps>=3)diag+='Too many of your posts reinforced the opposition framing. You did their job for them.';
+    else if(neglected.length>=2)diag+='You only addressed '+MSG_LIB[addressed[0]].label.toLowerCase()+'. Two other concern groups were never reached. While you spoke to one audience, the opposition captured the rest.';
+    else if(neglected.length===1)diag+='You never addressed the '+{farm:'farming',energy:'cost of living',elites:'elite distrust'}[neglected[0]]+' concern. That segment drifted to the opposition unchecked.';
+    else if(meetSkips>=3)diag+='You repeatedly skipped the Meet stage. Without acknowledging what people feel, the rest of the message bounces off.';
+    else if(hits<=1)diag+='Your messages were too vague or too institutional. The middle never felt heard.';
+    else diag+='Your strategy had promise but the opposition outpaced you. Consider which concerns needed more attention.';
+  }
+  return diag;
+}
+
+function generateDeepDive(pcts,passed,posts){
+  const concerns={farm:0,energy:0,elites:0};
+  let trapPosts=[],meetSkips=0,noTurn=0;
+  posts.forEach((p,i)=>{concerns[p.concern]=(concerns[p.concern]||0)+1;if(p.verdict==='trap')trapPosts.push(i+1);if(!p.selections.meet)meetSkips++;if(!p.selections.turn)noTurn++;});
+  const neglected=Object.keys(concerns).filter(k=>concerns[k]===0);
+  let html='';
+  html+='<p><strong>Coverage:</strong> ';
+  if(neglected.length===0)html+='You addressed all three concerns. Good strategic spread.';
+  else if(neglected.length===1){const n=neglected[0];const labels={farm:'farming',energy:'cost of living',elites:'elite distrust'};html+='You never addressed '+labels[n]+'. That segment of the population was left entirely to the opposition.';}
+  else html+='You only addressed one concern. Two-thirds of the persuadable population never heard from you.';
+  html+='</p>';
+  if(meetSkips>0){html+='<p><strong>Meet stage:</strong> You skipped Meet in '+meetSkips+' post'+(meetSkips>1?'s':'')+'. The Meet stage is the most important part of the formula. If you do not start with what the audience already feels, nothing that follows will land. This is the most common mistake in professional communications.</p>';}
+  if(noTurn>0){html+='<p><strong>Turn stage:</strong> You skipped the Turn in '+noTurn+' post'+(noTurn>1?'s':'')+'. Without naming the real cause, you leave space for the opposition to fill it with their explanation.</p>';}
+  if(trapPosts.length>0){html+='<p><strong>Traps:</strong> Post'+(trapPosts.length>1?'s ':' ')+trapPosts.join(', ')+' used opposition framing. These options feel direct and satisfying to write, which is exactly why they are dangerous. Blaming Brussels, solar companies, or elites mirrors what the opposition says. Appealing to science or asking people to sign a petition talks past the audience instead of to them.</p>';}
+  html+='<p><strong>The key insight:</strong> The opposition does not win by denying science. It wins by offering a better explanation for what people already feel. Meet and Move works by offering that explanation first, grounded in real causes, before the opposition framing becomes the only one people have heard.</p>';
+  return html;
+}
+
+function showDebrief(pcts,passed){
+  const overlay=document.getElementById('debrief-overlay');
+  const resultEl=document.getElementById('debrief-result');
+  resultEl.textContent=passed?'PASSED':'FAILED';
+  resultEl.className='debrief-result '+(passed?'pass':'fail');
+  document.getElementById('debrief-subtitle').textContent=passed?'The Living Landscapes Act has passed. Your campaign made a difference.':'The Living Landscapes Act has failed. The opposition narrative won.';
+  const dP=pcts.pro-startPcts.pro,dN=pcts.neutral-startPcts.neutral,dO=pcts.opp-startPcts.opp;
+  document.getElementById('debrief-stats').innerHTML='<div class="debrief-stat"><span class="debrief-stat-val blue">'+pcts.pro+'%</span><span class="debrief-stat-label">Pro-nature</span><span class="debrief-stat-delta '+(dP>=0?'up':'down')+'">'+(dP>=0?'\u25B2 +'+dP+'%':'\u25BC '+dP+'%')+'</span></div><div class="debrief-stat"><span class="debrief-stat-val yellow">'+pcts.neutral+'%</span><span class="debrief-stat-label">Neutral</span><span class="debrief-stat-delta '+(dN>=0?'up':'down')+'">'+(dN>=0?'\u25B2 +'+dN+'%':'\u25BC '+dN+'%')+'</span></div><div class="debrief-stat"><span class="debrief-stat-val red">'+pcts.opp+'%</span><span class="debrief-stat-label">Opposition</span><span class="debrief-stat-delta '+(dO>=0?'down':'up')+'">'+(dO>=0?'\u25B2 +'+dO+'%':'\u25BC '+dO+'%')+'</span></div>';
+  const postsEl=document.getElementById('debrief-posts');postsEl.innerHTML='';
+  const stageNames=['meet','amplify','turn','move'];
+  postLog.forEach(post=>{
+    const row=document.createElement('div');row.className='debrief-post-row';
+    let stagesHtml='';stageNames.forEach(s=>{const sel=post.selections[s];if(sel){stagesHtml+='<span class="debrief-stage-pip '+sel.score+'">'+s.charAt(0).toUpperCase()+'</span>';}else{stagesHtml+='<span class="debrief-stage-pip skipped">'+s.charAt(0).toUpperCase()+'</span>';}});
+    row.innerHTML='<span class="debrief-post-num">'+post.num+'</span><span class="debrief-post-concern">'+post.concernLabel+'</span><div class="debrief-post-stages">'+stagesHtml+'</div><span class="debrief-post-verdict '+post.verdict+'">'+post.verdict+'</span>';
+    postsEl.appendChild(row);
+  });
+  document.getElementById('debrief-diagnosis').textContent=generateDiagnosis(pcts,passed,postLog);
+  document.getElementById('dig-deeper-content').innerHTML=generateDeepDive(pcts,passed,postLog);
+  document.getElementById('dig-deeper-content').classList.remove('open');
+  overlay.classList.add('open');
+}
+
+document.getElementById('dig-deeper-btn').addEventListener('click',()=>{
+  const content=document.getElementById('dig-deeper-content');
+  const btn=document.getElementById('dig-deeper-btn');
+  const isOpen=content.classList.contains('open');
+  content.classList.toggle('open');
+  btn.textContent=isOpen?'Dig deeper':'Close';
+});
+
+document.getElementById('debrief-restart').addEventListener('click',()=>{
+  document.getElementById('debrief-overlay').classList.remove('open');
+  restartGame();
+});
+
+// ===== GAME START =====
+function startGame(){resize();drawGrid();initParticles();loop();}
+
+function restartGame(){
+  gameOver=false;paused=false;postsRemaining=6;selectedConcern=null;idleTicks=0;postLog=[];concernVisits={farm:0,energy:0,elites:0};
+  document.querySelector('.status').innerHTML='<div class="pulse-dot"><div class="core"></div><div class="ring"></div></div>Opposition Active';
+  document.getElementById('cta-btn').disabled=false;document.getElementById('remaining').textContent='6 remaining';
+  document.getElementById('post-history').innerHTML='';
+  setLCD('--:--','Awaiting your first post',true);
+  resize();drawGrid();initParticles();
+}
+
+// ===== INIT =====
+window.addEventListener('resize',()=>{if(W>0){resize();drawGrid();}});
+</script>
+</body>
+</html>
